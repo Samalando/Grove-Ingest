@@ -1,0 +1,11 @@
+{
+  "provider": "google-calendar",
+  "externalId": "idk",
+  "title": "Demo",
+  "syncedAt": "2026-05-12T12:00:00Z",
+  "kind": "calendar-event",
+  "extraData": [
+    "2026-07-17T20:00:00Z",
+    "2026-07-17T21:30:00Z"
+  ]
+}
