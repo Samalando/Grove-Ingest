@@ -9,5 +9,6 @@ type IngestedItem = {
     syncedAt: string;
     kind: "email" | "calendar-event" | "github-issue" | "github-pr" | "github-repo";
     raw: unknown;
-    extraData?: string[];
+    EmailExtra: { cc: string[]; bcc: string[] };
+    CalendarExtra: { startDate: string; endDate: string };
 };
