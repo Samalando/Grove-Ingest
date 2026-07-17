@@ -1,12 +1,12 @@
 {
   "provider": "github",
   "externalId": "samalando",
-  "sourceUrl": "https://samalando.com/portfolio",
+  "sourceUrl": "https://github.com/Samalando/Grove-Ingest/issues/2",
   "title": "BIG ISSUE!!!!",
   "body": "You MADE a HUGE spelling MISTAKE!!!! its 'cheese' not 'chease'!!! fix now!!!!!",
-  "createdAt": "2026-05-12T12:00:00Z",
-  "updatedAt":"2026-05-12T12:00:01Z",
-  "syncedAt": "2026-07-14T15:44:26Z",
+  "createdAt": "2026-07-17T14:34:11Z",
+  "updatedAt":"2026-07-17T14:34:11Z",
+  "syncedAt": "2026-07-18T15:44:26Z",
   "kind": "github-issue"
 
 }
