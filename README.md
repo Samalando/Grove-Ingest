@@ -6,7 +6,7 @@ A project used for taking in 3rd party data and integrating it into Grove.
 Current status: Week 1
 
 ### Current Integrations
-- nothing... yet!
+- nothign... yet!
  
 ### Integrations To Add
 - GitHub
