@@ -10,13 +10,13 @@ console.log("Its running")
 //
 //console.log(loadConfig());
 
-async function run() {
+export async function run() {
     const dataImport = await p.select({
         message: "What do you want to sync?",
         options: [
             { value: "github", label: "GitHub" },
             { value: "calendar", label: "Google Calendar" },
-            { value: "gmail", label: "Gmail" },
+            //{ value: "gmail", label: "Gmail" },
         ],
     });
     if (p.isCancel(dataImport)) process.exit(1);
@@ -27,15 +27,16 @@ async function run() {
             message: "What from GitHub?",
             options: [
                 { value: "prs", label: "Pull Requests" },
-                { value: "issues", label: "Issues" },
-                { value: "both", label: "Both" },
+                { value: "issues", label: "Issues" }
             ],
         })
     }
     if (p.isCancel(githubMode)) process.exit(1);
 
+    let start;
+    let end;
     if (dataImport === "calendar") {
-        const start = await p.date(({
+         start = await p.date(({
             message: 'Start Date of calendar ingest',
             minDate: new Date('1900-01-01'),
             initialValue: new Date(),
@@ -43,7 +44,7 @@ async function run() {
         }))
         if (p.isCancel(start)) process.exit(1);
 
-        const end = await p.date(({
+        end = await p.date(({
             message: 'End Date of calendar ingest',
             minDate: new Date('1900-01-01'),
             initialValue: new Date(),
@@ -79,17 +80,18 @@ async function run() {
     if (p.isCancel(spikeType)) process.exit(1);
 
     let composioKey: string | symbol | undefined;
-    let composioUser: string;
+    let composioUser: string | symbol | undefined;
     if (spikeType === "composio") {
      composioKey = await p.password({
-        message: "please put your composio key below",
+        message: "please put your composio key below.",
         mask: '*'
     })
         composioUser = await p.text({
-            message: "please put youe composio Username"
+            message: "please put youe composio Username. It must match your GitHub username."
         })
     }
     if (p.isCancel(composioKey)) process.exit(1);
+    if (p.isCancel(composioUser)) process.exit(1);
 
     
     const targetDir = await p.path({
@@ -99,17 +101,19 @@ async function run() {
     if (p.isCancel(targetDir)) process.exit(1);
 
     const spike: SpikeConfig = spikeType === "composio"
-        ? { type: "composio", composioApiKey: composioKey ?? ""}
+        ? { type: "composio", composioApiKey: composioKey ?? "", username: composioUser ?? ""}
         : { type: "native" };
-
+let config;
     if(dataImport === "github") {
         if (githubMode !== undefined) {
-            setConfig(targetDir, spike, undefined, undefined, { mode: githubMode })
+           config = setConfig(targetDir, spike, undefined, undefined, { mode: githubMode })
+
         }
     }
-
+    console.log(config);
+    return config;
+    if (!config) {
+        throw new Error("config is undefined");
+    }
 }
-
-run();
-composio();
 
