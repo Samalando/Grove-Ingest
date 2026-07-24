@@ -9,20 +9,21 @@ export async function toMarkdown(config: Config) {
 
 
     for (const data of dataArray) {
-        const markdown =
-            "---\n" +
-            `provider: ${data.provider}\n` +
-            `kind: ${data.kind}\n` +
-            `external_id: "${data.externalId}"\n` +
-            `source_url: "${data.sourceUrl}"\n` +
-            `created_at: "${data.createdAt}"\n` +
-            `updated_at: "${data.updatedAt}"\n` +
-            `synced_at: "${data.syncedAt}"\n` +
-            "---\n" +
-            "\n" +
-            `# ${data.title}\n` +
-            "\n" +
-            data.body;
+        const bodyContent = data.body !== null ? data.body : "*No body was provided.*";
+
+        const markdown = `---
+provider: ${data.provider}
+kind: ${data.kind}
+external_id: "${data.externalId}"
+source_url: "${data.sourceUrl}"
+created_at: "${data.createdAt}"
+updated_at: "${data.updatedAt}"
+synced_at: "${data.syncedAt}"
+---
+
+# ${data.title}
+
+${bodyContent}`;
 
         console.log(`Writing markdown for: ${data.title}`);
 

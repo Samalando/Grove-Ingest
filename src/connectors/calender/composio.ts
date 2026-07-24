@@ -3,7 +3,7 @@ import {Composio} from "@composio/core";
 
 async function run() {
     const composio = new Composio({
-        apiKey: "ak_KkGmKdhkBvVxIo3PQ00e"
+        apiKey:
     });
 
     const session = await composio.create('user_123');

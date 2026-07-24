@@ -81,11 +81,11 @@ export async function start() {
     let composioUser: string | symbol | undefined;
     if (spikeType === "composio") {
      composioKey = await p.password({
-        message: "please put your composio key below.",
+        message: "please put your Composio key below.",
         mask: '*'
     })
         composioUser = await p.text({
-            message: "please put youe composio Username. It must match your GitHub username."
+            message: "please put your Composio Username. It must match your GitHub username."
         })
     }
     if (p.isCancel(composioKey)) process.exit(1);
