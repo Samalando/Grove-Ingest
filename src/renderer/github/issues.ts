@@ -18,7 +18,7 @@ export async function run(config: Config): Promise<MarkdownConfig[]> {
             createdAt: data.created_at,
             updatedAt: data.updated_at,
             syncedAt: isoString,
-            kind: "github-pr"
+            kind: "github-issue"
         };
     });
 }

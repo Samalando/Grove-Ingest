@@ -1,10 +1,10 @@
 import {Composio} from "@composio/core";
-import { run } from "../../cli";
+
+import {Config} from "../../config/config";
 
 
-export async function composio() {
+export async function composio(config: Config) {
 
-    const config = await run();
 
     if(config === undefined || config.github === undefined) {
         throw new Error("config is undefined");

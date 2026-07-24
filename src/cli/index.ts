@@ -1,16 +1,14 @@
 
 import * as p from "@clack/prompts";
-import { Composio } from '@composio/core';
-import { Config, GithubExportMode, SpikeConfig} from "../config/config";
+import { GithubExportMode, SpikeConfig} from "../config/config";
 import {setConfig} from "../config";
-import { composio } from "../connectors/github/composio"
 
 console.log("Its running")
 
-//
+
 //console.log(loadConfig());
 
-export async function run() {
+export async function start() {
     const dataImport = await p.select({
         message: "What do you want to sync?",
         options: [
@@ -111,9 +109,10 @@ let config;
         }
     }
     console.log(config);
-    return config;
     if (!config) {
         throw new Error("config is undefined");
     }
+    return config;
+
 }
 
