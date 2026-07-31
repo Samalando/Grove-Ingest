@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
-    "@composio/core": "^0.14.0"
+    "@composio/core": "^0.14.0",
+    "@octokit/rest": "^22.0.1"
 
   },
   "devDependencies": {

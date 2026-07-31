@@ -9,6 +9,8 @@ export type MarkdownConfig = {
     createdAt: string,
     updatedAt: string,
     syncedAt: string,
+    issueNumber?: number,
+    repo?: string
     kind: "github-pr" | "calendar-event" | "email" | "github-issue",
     CalendarExtra?: {
         startDate: string,

@@ -1,12 +1,17 @@
 import {Composio} from "@composio/core";
 
+import {Config} from "../../config/config";
 
-async function run() {
-    const composio = new Composio({
-        apiKey:
-    });
+async function run(config: Config) {
+    if(config === undefined || config.github === undefined) {
+        throw new Error("config is undefined");
+    }
+    if(config.spike.type === "composio") {
+        const composio = new Composio({
+            apiKey: config.spike.composioApiKey,
+        });
 
-    const session = await composio.create('user_123');
+        const session = await composio.create(config.spike.username);
 
     const toolkits = await session.toolkits();
     const googlecalendar = toolkits.items.find(t => t.slug === 'googlecalendar');
@@ -18,7 +23,7 @@ async function run() {
     }
 
     const result = await session.execute('GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS', {
-        time_min: "0001-01-01T00:00:00Z",
+        time_min: ,
         time_max: "9999-12-31T23:59:59Z",
         response_detail: 'full'
     });

@@ -1,6 +1,6 @@
 
 import * as p from "@clack/prompts";
-import { GithubExportMode, SpikeConfig} from "../config/config";
+import {GithubExportMode, GoogleExportMode, SpikeConfig} from "../config/config";
 import {setConfig} from "../config";
 
 console.log("Its running")
@@ -13,11 +13,15 @@ export async function start() {
         message: "What do you want to sync?",
         options: [
             { value: "github", label: "GitHub" },
-            { value: "calendar", label: "Google Calendar" },
-            //{ value: "gmail", label: "Gmail" },
+            { value: "google", label: "Google Suite" },
         ],
     });
     if (p.isCancel(dataImport)) process.exit(1);
+
+    let googleMode: GoogleExportMode;
+    if (dataImport === "google") {
+        
+    }
 
     let githubMode: GithubExportMode | symbol | undefined;
     if (dataImport === "github") {
@@ -60,8 +64,9 @@ export async function start() {
     })
     if (p.isCancel(dataQuantity)) process.exit(1);
 
+    let select
     if(dataQuantity === "select") {
-        const select = await p.text({
+         select = await p.text({
             message: "Please send what data you want to import"
         })
         if (p.isCancel(select)) process.exit(1);
@@ -104,11 +109,11 @@ export async function start() {
 let config;
     if(dataImport === "github") {
         if (githubMode !== undefined) {
-           config = setConfig(targetDir, spike, undefined, undefined, { mode: githubMode })
+           config = setConfig(targetDir, spike, undefined, undefined, { mode: githubMode }, select, )
 
         }
     }
-    console.log(config);
+    //console.log(config);
     if (!config) {
         throw new Error("config is undefined");
     }

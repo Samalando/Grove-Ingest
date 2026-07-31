@@ -7,6 +7,7 @@ Current status: Week 1
 
 ### Current Integrations
 - nothign... yet!
+- GitHub PRs
  
 ### Integrations To Add
 - GitHub

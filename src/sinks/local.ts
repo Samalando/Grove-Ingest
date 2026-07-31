@@ -1,11 +1,27 @@
-import {run} from "../renderer/github/prs";
 import * as fs from 'fs';
 import {Config} from "../config/config";
 import * as path from "node:path";
+import {renderFunc} from "../renderer";
 
+function makeTitleFilenameSafe(title: string) {
+    const replacements = {
+        '/': '∕',
+        '\\': '＼',
+        ':': 'ː',
+        '*': '⁎',
+        '?': 'ʔ',
+        '"': '″',
+        '<': '‹',
+        '>': '›',
+        '|': '｜'
+    };
+
+
+    return title.replace(/[\/\\?*:|"<>]/g, (match): string => replacements[match] || '_');
+}
 export async function toMarkdown(config: Config) {
 
-    const dataArray = await run(config);
+    const dataArray = await renderFunc(config);
 
 
     for (const data of dataArray) {
@@ -25,9 +41,11 @@ synced_at: "${data.syncedAt}"
 
 ${bodyContent}`;
 
-        console.log(`Writing markdown for: ${data.title}`);
 
-        const itemPath = path.join(config.outputDir, data.externalId + ".md");
+        const sanitizedTitle = makeTitleFilenameSafe(data.title);
+
+
+        const itemPath = path.join(config.outputDir, data.provider + " --" + sanitizedTitle + ".md");
 
         fs.writeFileSync(itemPath, markdown);
     }

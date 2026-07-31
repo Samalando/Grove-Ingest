@@ -38,7 +38,11 @@ export async function composio(config: Config) {
                 owner: config.spike.username,
             });
             result = result.data.pull_requests
-        }
+        } /*else if (config.github.mode === "issues") {
+            result = await session.execute('GITHUB_LIST_ISSUES_ASSIGNED_TO_THE_AUTHENTICATED_USER', {
+                
+            })
+        }*/
         console.log(JSON.stringify(result, null, 2));
         return result;
     }
