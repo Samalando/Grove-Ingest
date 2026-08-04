@@ -2,13 +2,13 @@ import {Composio} from "@composio/core";
 
 import {Config} from "../../config/config";
 
-export async function calendarRun(config: Config) {
+export async function gmailRun(config: Config) {
     if (config === undefined || config.google?.type === undefined) {
         throw new Error("config is undefined");
     }
     let me
-    if (config.google?.type === "calendar") {
-        me = config.google.calendar;
+    if (config.google?.type === "gmail") {
+        me = config.google.gmail;
     }
 
     if (config.spike.type === "composio") {
@@ -19,21 +19,18 @@ export async function calendarRun(config: Config) {
         const session = await composio.create(config.spike.username);
 
         const toolkits = await session.toolkits();
-        const googlecalendar = toolkits.items.find(t => t.slug === 'googlecalendar');
+        const gmail = toolkits.items.find(t => t.slug === 'gmail');
 
-        if (!googlecalendar?.connection?.isActive) {
-            const auth = await session.authorize('googlecalendar');
+        if (!gmail?.connection?.isActive) {
+            const auth = await session.authorize('gmail');
             console.log(auth.redirectUrl);
             await auth.waitForConnection();
         }
 
-        const result = await session.execute('GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS', {
-            time_min: me?.start,
-            time_max: me?.end,
-            response_detail: 'full'
+        const result = await session.execute('GMAIL_FETCH_EMAILS', {
+            max_results: 10, /* want to not hardcode this eventually.*/
+            include_payloads: true
         });
-
-        console.log(result.data);
 
         return result.data;
     }

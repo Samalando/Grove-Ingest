@@ -1,7 +1,8 @@
-import Octokit from '@octokit/rest';
+import {Octokit} from '@octokit/rest';
+import {Config} from '../../config/config'
 
 
-async function fetchUsers() {
+export async function nativeGithub(config: Config) {
     const ClientID = "Ov23lieh21QwRwTSPrGO"
 
     const params = new URLSearchParams({
@@ -35,7 +36,7 @@ async function fetchUsers() {
                 throw new Error("Device code expired before authorization completed.");
             }
 
-            const response = await fetch("https://github.com/login/access_token", {
+            const response = await fetch("https://github.com/login/oauth/access_token", {
                 method: "POST",
                 headers: { "Accept": "application/json" },
                 body: new URLSearchParams({
@@ -48,7 +49,7 @@ async function fetchUsers() {
             const data = await response.json();
 
             if (data.error === "authorization_pending") {
-                console.log("not yet authorized, keep polling")
+                // waiting patiently...
             } else if (data.error === "slow_down") {
                 interval += 5;
             } else if (data.error) {
@@ -61,11 +62,24 @@ async function fetchUsers() {
         }
     }
 
-    return pollForToken(data.device_code, interval, data.expires_in);
+    const accessToken = await pollForToken(data.device_code, interval, data.expires_in);
+
+    const octokit = new Octokit({
+        auth: accessToken
+    });
+    let stuffs
+    if(config.github?.mode === "prs") {
+        stuffs = await octokit.rest.pulls.list({
+            owner: "Samalando",
+            repo: "grove-ingest",
+        })
+    } else if (config.github?.mode === "issues") {
+        stuffs = await octokit.rest.issues.list({
+            owner: "Samalando",
+            repo: "grove-ingest",
+        })
+    }
+
+    console.log(JSON.stringify(stuffs, null, 2));
+    return stuffs?.data ?? [];
 }
-
-
-
-fetchUsers()
-    .then((token) => console.log("Access token:", token))
-    .catch((err) => console.error(err));

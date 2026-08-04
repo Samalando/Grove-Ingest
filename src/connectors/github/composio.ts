@@ -30,7 +30,8 @@ export async function composio(config: Config) {
                 repo: "grove-ingest",
                 owner: config.spike.username,
             });
-             result = result.data.issues.filter(item => !item.pull_request)
+             // @ts-ignore
+            result = result.data.issues.filter(item => !item.pull_request)
             console.log(result);
         } else if (config.github.mode === "prs") {
             result = await session.execute('GITHUB_LIST_PULL_REQUESTS', {

@@ -17,7 +17,8 @@ export type MarkdownConfig = {
         endDate: string
     },
     EmailExtras?: {
-        cc: [string],
-        bcc: [string],
+        to: string,
+        cc?: [string],
+        bcc?: [string],
     }
 }

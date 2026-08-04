@@ -1,7 +1,5 @@
-
-
 export type Config = {
-    github?: { mode: GithubExportMode; token: string; repo?: string }
+    github?: { mode: GithubExportMode; repo?: string }
     spike: SpikeConfig
     sinks: { grove: { enabled: boolean } }
     outputDir: string;
@@ -10,8 +8,7 @@ export type Config = {
 }
 
 export type GithubExportMode = "prs" | "issues";
-
-export type GoogleExportMode = { type: "calendar"; calendar?: { start: Date; end: Date }}| {type: "gmail" };
+export type GoogleExportMode = { type: "calendar"; calendar?: { start: Date; end: Date } } | { type: "gmail"; gmail?: {sendDate: Date; sendTime: Date; cc: string} };
 
 export type SpikeConfig =
     | { type: "composio"; composioApiKey: string; username: string }

@@ -4,7 +4,7 @@ import {toMarkdown} from "./sinks/local";
 async function stuff() {
     const config = await start()
 
-    if (config === undefined || config.github === undefined) {
+    if (config === undefined) {
         throw new Error("config is undefined");
     } else {
 

@@ -9,13 +9,14 @@
   "dependencies": {
     "@clack/prompts": "^1.7.0",
     "@composio/core": "^0.14.0",
-    "@octokit/rest": "^22.0.1"
-
+    "@octokit/rest": "^22.0.1",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
-    "typescript": "^5.5.3",
-    "bun": "^1.3.14"
+    "@types/turndown": "^5.0.6",
+    "bun": "^1.3.14",
+    "typescript": "^5.5.3"
   },
   "private": true
 }

@@ -13,3 +13,10 @@ yarn-error.log*
 
 output/*
 .env
+
+.DS_Store
+
+/dist/
+
+CLAUDE.md
+.claude/

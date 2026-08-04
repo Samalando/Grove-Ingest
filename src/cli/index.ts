@@ -1,6 +1,6 @@
 
 import * as p from "@clack/prompts";
-import {GithubExportMode, GoogleExportMode, SpikeConfig} from "../config/config";
+import {GithubExportMode, SpikeConfig} from "../config/config";
 import {setConfig} from "../config";
 
 console.log("Its running")
@@ -18,10 +18,17 @@ export async function start() {
     });
     if (p.isCancel(dataImport)) process.exit(1);
 
-    let googleMode: GoogleExportMode;
+    let googleMode: "gmail" | "calendar" | symbol | undefined;
     if (dataImport === "google") {
-        
+        googleMode = await p.select<"gmail" | "calendar">({
+             message: "Please select your Google Suite type",
+            options: [
+        {value: "gmail", label: "Gmail"},
+                {value: "calendar", label: "Google Calendar"}
+            ]
+        })
     }
+    if (p.isCancel(googleMode)) process.exit(1);
 
     let githubMode: GithubExportMode | symbol | undefined;
     if (dataImport === "github") {
@@ -37,7 +44,7 @@ export async function start() {
 
     let start;
     let end;
-    if (dataImport === "calendar") {
+    if (googleMode === "calendar") {
          start = await p.date(({
             message: 'Start Date of calendar ingest',
             minDate: new Date('1900-01-01'),
@@ -84,6 +91,7 @@ export async function start() {
 
     let composioKey: string | symbol | undefined;
     let composioUser: string | symbol | undefined;
+
     if (spikeType === "composio") {
      composioKey = await p.password({
         message: "please put your Composio key below.",
@@ -109,9 +117,13 @@ export async function start() {
 let config;
     if(dataImport === "github") {
         if (githubMode !== undefined) {
-           config = setConfig(targetDir, spike, undefined, undefined, { mode: githubMode }, select, )
+           config = setConfig(targetDir, spike, undefined, { mode: githubMode }, select, googleMode, start, end)
 
         }
+    }
+
+    if(dataImport === "google"){
+        config = setConfig(targetDir, spike, undefined, undefined, undefined, googleMode , start, end)
     }
     //console.log(config);
     if (!config) {
