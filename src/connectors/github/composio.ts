@@ -1,9 +1,10 @@
 import {Composio} from "@composio/core";
 
 import {Config} from "../../config/config";
+import {AuthNotice} from "../authNotice";
 
 
-export async function composio(config: Config) {
+export async function composio(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
 
 
     if(config === undefined || config.github === undefined) {
@@ -22,7 +23,9 @@ export async function composio(config: Config) {
         if (!github?.connection?.isActive) {
             const auth = await session.authorize('github');
             console.log(auth.redirectUrl);
+            if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
             await auth.waitForConnection();
+            onAuthNotice?.(null);
         }
         let result;
         if(config.github.mode === "issues") {

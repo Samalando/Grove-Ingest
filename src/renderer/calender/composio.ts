@@ -1,12 +1,13 @@
 import { calendarRun } from "../../connectors/calender/composio";
 import { MarkdownConfig } from "../markdown";
 import { Config } from "../../config/config";
+import { AuthNotice } from "../../connectors/authNotice";
 
-export async function calendarEventsRun(config: Config): Promise<MarkdownConfig[]> {
+export async function calendarEventsRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void): Promise<MarkdownConfig[]> {
     const now: Date = new Date();
     const isoString: string = now.toISOString();
 
-    const result: any = await calendarRun(config);
+    const result: any = await calendarRun(config, onAuthNotice);
     const summaryView = result?.summary_view ?? [];
     const events = result?.events ?? [];
 

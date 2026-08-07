@@ -1,2 +1,1 @@
-
-composio(config);
+1

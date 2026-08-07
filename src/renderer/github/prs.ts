@@ -1,12 +1,13 @@
 import { composio } from "../../connectors/github/composio";
 import { MarkdownConfig } from "../markdown";
 import { Config } from "../../config/config";
+import { AuthNotice } from "../../connectors/authNotice";
 
-export async function prsRun(config: Config): Promise<MarkdownConfig[]> {
+export async function prsRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void): Promise<MarkdownConfig[]> {
     const now: Date = new Date();
     const isoString: string = now.toISOString();
 
-    const ingestedData = await composio(config);
+    const ingestedData = await composio(config, onAuthNotice);
 
     return ingestedData.map((data: any) => {
         return {

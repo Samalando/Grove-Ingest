@@ -1,8 +1,9 @@
 import {Composio} from "@composio/core";
 
 import {Config} from "../../config/config";
+import {AuthNotice} from "../authNotice";
 
-export async function gmailRun(config: Config) {
+export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
     if (config === undefined || config.google?.type === undefined) {
         throw new Error("config is undefined");
     }
@@ -24,7 +25,9 @@ export async function gmailRun(config: Config) {
         if (!gmail?.connection?.isActive) {
             const auth = await session.authorize('gmail');
             console.log(auth.redirectUrl);
+            if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
             await auth.waitForConnection();
+            onAuthNotice?.(null);
         }
 
         const result = await session.execute('GMAIL_FETCH_EMAILS', {

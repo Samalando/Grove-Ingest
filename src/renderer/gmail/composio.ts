@@ -1,6 +1,7 @@
 import { gmailRun } from "../../connectors/gmail/composio";
 import { MarkdownConfig } from "../markdown";
 import { Config } from "../../config/config";
+import { AuthNotice } from "../../connectors/authNotice";
 import TurndownService from "turndown"
 
 const turndownService = new TurndownService();
@@ -22,11 +23,11 @@ function findHtmlBody(part: any): string | undefined {
     return undefined;
 }
 
-export async function gmailMessagesRun(config: Config): Promise<MarkdownConfig[]> {
+export async function gmailMessagesRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void): Promise<MarkdownConfig[]> {
     const now: Date = new Date();
     const isoString: string = now.toISOString();
 
-    const result: any = await gmailRun(config);
+    const result: any = await gmailRun(config, onAuthNotice);
     const messages = result?.messages ?? [];
 
     return messages.map((message: any): MarkdownConfig => {

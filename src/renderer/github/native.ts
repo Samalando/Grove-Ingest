@@ -1,12 +1,13 @@
 import { nativeGithub } from "../../connectors/github/native";
 import { MarkdownConfig } from "../markdown";
 import { Config } from "../../config/config";
+import { AuthNotice } from "../../connectors/authNotice";
 
-export async function nativeRun(config: Config): Promise<MarkdownConfig[]> {
+export async function nativeRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void): Promise<MarkdownConfig[]> {
     const now: Date = new Date();
     const isoString: string = now.toISOString();
 
-    const ingestedData = await nativeGithub(config);
+    const ingestedData = await nativeGithub(config, onAuthNotice);
 
     return ingestedData.map((data: any) => {
         return {
