@@ -183,9 +183,12 @@ export default function ContentView(): JSX.Element {
     const [runError, setRunError] = useState<string | undefined>()
     const [writtenCount, setWrittenCount] = useState<number | undefined>()
     const [authNotice, setAuthNotice] = useState<{ url: string; code?: string } | null>(null)
+    const [repoOptions, setRepoOptions] = useState<string[]>([])
+    const [repoStatus, setRepoStatus] = useState<"idle" | "loading" | "error">("idle")
+    const [repoError, setRepoError] = useState<string | undefined>()
 
     useEffect(() => {
-        if (runStatus !== "running") {
+        if (runStatus !== "running" && repoStatus !== "loading") {
             setAuthNotice(null)
             return
         }
@@ -199,7 +202,26 @@ export default function ContentView(): JSX.Element {
             }
         }, 1200)
         return () => clearInterval(interval)
-    }, [runStatus])
+    }, [runStatus, repoStatus])
+
+    async function loadRepos() {
+        setRepoStatus("loading")
+        setRepoError(undefined)
+        try {
+            const res = await fetch("/api/github/repos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ composioApiKey: password, username: composioUser }),
+            })
+            const data = await res.json()
+            if (!res.ok || !data.ok) throw new Error(data.error ?? "Could not load repositories")
+            setRepoOptions(data.repos as string[])
+            setRepoStatus("idle")
+        } catch (err) {
+            setRepoStatus("error")
+            setRepoError(err instanceof Error ? err.message : String(err))
+        }
+    }
 
     const dataImport: "github" | "google" | undefined =
         option === "Pull Requests" || option === "Issues" ? "github"
@@ -218,6 +240,9 @@ export default function ContentView(): JSX.Element {
         setSpike("Spike")
         setBuiltConfig(undefined)
         setRunStatus("idle")
+        setRepoOptions([])
+        setRepoStatus("idle")
+        setSelectData("")
     }
 
     function chooseSpike(value: SpikeOption) {
@@ -352,7 +377,47 @@ export default function ContentView(): JSX.Element {
                             ))}
                         </div>
                     )}
-                    {dataQuantity === "select" && googleMode !== "gmail" && (
+                    {dataQuantity === "select" && dataImport === "github" && (
+                        <div className="field-group">
+                            <span className="field-label">Composio credentials (needed to list your repositories)</span>
+                            <input
+                                className="text-input"
+                                type="password"
+                                placeholder="ak_XXX..."
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <input
+                                className="text-input"
+                                type="text"
+                                placeholder="Composio username"
+                                value={composioUser}
+                                onChange={(e) => setComposioUser(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="option-button"
+                                disabled={!password || !composioUser || repoStatus === "loading"}
+                                onClick={loadRepos}
+                            >
+                                {repoStatus === "loading" ? "Loading repositories…" : "Load my repositories"}
+                            </button>
+                            {repoStatus === "error" && <div className="folder-browser-error">{repoError}</div>}
+                            {repoOptions.length > 0 && (
+                                <select
+                                    className="text-input"
+                                    value={selectData}
+                                    onChange={(e) => setSelectData(e.target.value)}
+                                >
+                                    <option value="" disabled>Choose a repository…</option>
+                                    {repoOptions.map((name) => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    )}
+                    {dataQuantity === "select" && googleMode === "calendar" && (
                         <input
                             className="text-input"
                             type="text"

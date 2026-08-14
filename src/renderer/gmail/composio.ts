@@ -49,7 +49,8 @@ export async function gmailMessagesRun(config: Config, onAuthNotice?: (notice: A
             syncedAt: isoString,
             kind: "email",
             EmailExtras:{
-                to: message.to
+                to: message.to,
+                threadId: message.threadId
             }
         };
     });

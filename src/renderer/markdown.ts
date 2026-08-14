@@ -20,5 +20,6 @@ export type MarkdownConfig = {
         to: string,
         cc?: [string],
         bcc?: [string],
+        threadId?: string,
     }
 }

@@ -3,6 +3,25 @@ import {Composio} from "@composio/core";
 import {Config} from "../../config/config";
 import {AuthNotice} from "../authNotice";
 
+const CATEGORY_QUERY_OPERATORS: Record<string, string> = {
+    INBOX: "in:inbox",
+    SPAM: "in:spam",
+    TRASH: "in:trash",
+    UNREAD: "is:unread",
+    STARRED: "is:starred",
+    IMPORTANT: "is:important",
+    CATEGORY_PRIMARY: "category:primary",
+    CATEGORY_SOCIAL: "category:social",
+    CATEGORY_PROMOTIONS: "category:promotions",
+    CATEGORY_UPDATES: "category:updates",
+    CATEGORY_FORUMS: "category:forums",
+};
+
+function buildGmailQuery(categories?: string[]): string | undefined {
+    if (!categories?.length) return undefined;
+    return categories.map((category) => CATEGORY_QUERY_OPERATORS[category] ?? category).join(" OR ");
+}
+
 export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
     if (config === undefined || config.google?.type === undefined) {
         throw new Error("config is undefined");
@@ -32,9 +51,11 @@ export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotic
 
         const result = await session.execute('GMAIL_FETCH_EMAILS', {
             max_results: 10, /* want to not hardcode this eventually.*/
-            include_payloads: true
+            include_payload: true,
+            query: buildGmailQuery(me?.categories),
         });
-
+        console.log((JSON.stringify(result, null, 2)) as any);
         return result.data;
+
     }
 }

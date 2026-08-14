@@ -2,6 +2,7 @@
 import * as p from "@clack/prompts";
 import {GithubExportMode, SpikeConfig} from "../config/config";
 import {setConfig} from "../config";
+import {listRepositories} from "../connectors/github/composio";
 
 console.log("Its running")
 
@@ -62,23 +63,6 @@ export async function start() {
         if (p.isCancel(end)) process.exit(1);
     }
 
-    const dataQuantity = await p.select({
-        message: "Do you want to import one bit or all the data?",
-        options: [
-            { value: "all", label: "All Data" },
-            { value: "select", label: "Select data" }
-        ]
-    })
-    if (p.isCancel(dataQuantity)) process.exit(1);
-
-    let select
-    if(dataQuantity === "select") {
-         select = await p.text({
-            message: "Please send what data you want to import"
-        })
-        if (p.isCancel(select)) process.exit(1);
-    }
-
     const spikeType = await p.select<"composio" | "native">({
         message: "which do you want to use as your spike?",
         options: [
@@ -98,13 +82,64 @@ export async function start() {
         mask: '*'
     })
         composioUser = await p.text({
-            message: "please put your Composio Username. It must match your GitHub username."
+            message: "please put your Composio Username."
         })
     }
     if (p.isCancel(composioKey)) process.exit(1);
     if (p.isCancel(composioUser)) process.exit(1);
 
-    
+    const dataQuantity = await p.select({
+        message: "Do you want to import one bit or all the data?",
+        options: [
+            { value: "all", label: "All Data" },
+            { value: "select", label: "Select data" }
+        ]
+    })
+    if (p.isCancel(dataQuantity)) process.exit(1);
+
+    let select
+    let categories: string[] | symbol = []
+    if(dataQuantity === "select") {
+        if (dataImport === "github" && spikeType === "composio") {
+            const spinner = p.spinner();
+            spinner.start("Fetching your repositories");
+            const repos = await listRepositories(
+                { type: "composio", composioApiKey: composioKey ?? "", username: composioUser ?? "" },
+                (notice) => { if (notice) spinner.message(`Authorize Composio: ${notice.url}`) },
+            );
+            spinner.stop("Repositories loaded");
+
+            select = await p.select({
+                message: "Which repository?",
+                options: repos.map((name) => ({ value: name, label: name })),
+            })
+        }
+
+        if (p.isCancel(select)) process.exit(1);
+
+        if(googleMode === "gmail") {
+            categories = await p.groupMultiselect({
+                message: 'Select additional tools.',
+                options: {
+                    Labels: [
+                        { value: 'INBOX', label: 'Inbox' },
+                        { value: 'SPAM', label: 'Spam' },
+                        { value: 'TRASH', label: 'Trash' },
+                        { value: 'UNREAD', label: 'Unread' },
+                        { value: 'STARRED', label: 'Starred' },
+                        { value: 'IMPORTANT', label: 'Important' },
+                        { value: 'CATEGORY_PRIMARY', label: 'Primary' },
+                        { value: 'CATEGORY_SOCIAL', label: 'Social' },
+                        { value: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
+                        { value: 'CATEGORY_UPDATES', label: 'Updates' },
+                        { value: 'CATEGORY_FORUMS', label: 'Forums' },
+                    ],
+                },
+            })
+            if (p.isCancel(categories)) process.exit(1);
+        }
+    }
+
     const targetDir = await p.path({
         message: 'Select the output directory.',
         directory: true,
@@ -123,7 +158,7 @@ let config;
     }
 
     if(dataImport === "google"){
-        config = setConfig(targetDir, spike, undefined, undefined, undefined, googleMode , start, end)
+        config = setConfig(targetDir, spike, undefined, undefined, undefined, googleMode , start, end, categories)
     }
     //console.log(config);
     if (!config) {

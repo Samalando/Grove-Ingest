@@ -8,7 +8,7 @@ export type Config = {
 }
 
 export type GithubExportMode = "prs" | "issues";
-export type GoogleExportMode = { type: "calendar"; calendar?: { start: Date; end: Date } } | { type: "gmail"; gmail?: {sendDate: Date; sendTime: Date; cc: string} };
+export type GoogleExportMode = { type: "calendar"; calendar?: { start: Date; end: Date } } | { type: "gmail"; gmail?: {categories?: string[]} };
 
 export type SpikeConfig =
     | { type: "composio"; composioApiKey: string; username: string }

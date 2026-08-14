@@ -1,9 +1,30 @@
 import {Octokit} from '@octokit/rest';
 import {Config} from '../../config/config'
 import {AuthNotice} from '../authNotice'
+import {AsyncEntry} from '@napi-rs/keyring'
+
+const KEYRING_SERVICE = 'grove-ingest'
+const KEYRING_ACCOUNT = 'github-token'
+
+function tokenEntry(): AsyncEntry {
+    return new AsyncEntry(KEYRING_SERVICE, KEYRING_ACCOUNT);
+}
+
+async function readCachedToken(): Promise<string | null> {
+    try {
+        return await tokenEntry().getPassword() ?? null;
+    } catch {
+        return null;
+    }
+}
+
+async function writeCachedToken(accessToken: string): Promise<void> {
+    await tokenEntry().setPassword(accessToken);
+}
 
 
-export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
+
+async function deviceFlowLogin(onAuthNotice?: (notice: AuthNotice | null) => void): Promise<string> {
     const ClientID = "Ov23lieh21QwRwTSPrGO"
 
     const params = new URLSearchParams({
@@ -21,6 +42,7 @@ export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthN
     });
 
     const data = await response.json();
+    console.log(data);
     console.log("Please go to " + data.verification_uri + " and type " + data.user_code + " to continue.");
     onAuthNotice?.({ url: data.verification_uri, code: data.user_code });
     let interval = data.interval
@@ -85,22 +107,40 @@ export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthN
     const accessToken = await pollForToken(data.device_code, interval, data.expires_in);
     onAuthNotice?.(null);
 
+    return accessToken;
+}
+
+export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
+    const cachedToken = await readCachedToken();
+    let accessToken = cachedToken ? cachedToken : null;
+
+    if (!accessToken) {
+        accessToken = await deviceFlowLogin(onAuthNotice);
+        await writeCachedToken(accessToken);
+    }
+
     const octokit = new Octokit({
         auth: accessToken
     });
-    let stuffs
-    if(config.github?.mode === "prs") {
-        stuffs = await octokit.rest.pulls.list({
-            owner: "Samalando",
-            repo: "grove-ingest",
-        })
-    } else if (config.github?.mode === "issues") {
-        stuffs = await octokit.rest.issues.list({
-            owner: "Samalando",
-            repo: "grove-ingest",
-        })
+    //@ts-ignore
+    async function fetchUserItems(octokit, username, type) {
+        const [authored, assigned] = await Promise.all([
+            octokit.rest.search.issuesAndPullRequests({ q: `author:${username} is:${type}` }),
+            octokit.rest.search.issuesAndPullRequests({ q: `assignee:${username} is:${type}` }),
+        ]);
+        const combined = [...authored.data.items, ...assigned.data.items];
+        return Array.from(new Map(combined.map((item) => [item.id, item])).values());
     }
 
-    console.log(JSON.stringify(stuffs, null, 2));
-    return stuffs?.data ?? [];
+    let stuffs
+    const { data } = await octokit.rest.users.getAuthenticated();
+    let username = data.login;
+    if(config.github?.mode === "prs") {
+        stuffs = await fetchUserItems(octokit, username, "pr")
+    } else if (config.github?.mode === "issues") {
+        stuffs = await fetchUserItems(octokit, username, "issue")
+    }
+
+    //@ts-ignore
+    return stuffs ?? [];
 }

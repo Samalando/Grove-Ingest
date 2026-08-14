@@ -3,6 +3,7 @@ import * as path from "node:path"
 import { readdir } from "node:fs/promises"
 import homepage from "./index.html"
 import { toMarkdown, renderMarkdownFiles } from "../sinks/local"
+import { listRepositories } from "../connectors/github/composio"
 import type { Config } from "../config/config"
 import type { AuthNotice } from "../connectors/authNotice"
 
@@ -61,6 +62,24 @@ const server = Bun.serve({
                     const config = await req.json() as Config
                     const files = await renderMarkdownFiles(config, (notice) => { pendingAuthNotice = notice })
                     return Response.json({ ok: true, files })
+                } catch (err) {
+                    return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+                } finally {
+                    pendingAuthNotice = null
+                }
+            },
+        },
+
+        "/api/github/repos": {
+            POST: async (req) => {
+                pendingAuthNotice = null
+                try {
+                    const { composioApiKey, username } = await req.json() as { composioApiKey: string; username: string }
+                    const repos = await listRepositories(
+                        { type: "composio", composioApiKey, username },
+                        (notice) => { pendingAuthNotice = notice },
+                    )
+                    return Response.json({ ok: true, repos })
                 } catch (err) {
                     return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
                 } finally {

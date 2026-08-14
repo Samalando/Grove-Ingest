@@ -8,7 +8,9 @@ async function stuff() {
         throw new Error("config is undefined");
     } else {
 
-      await toMarkdown(config);
+      await toMarkdown(config, (notice) => {
+          if (notice) console.log(`Authorize: ${notice.url}${notice.code ? ` (code: ${notice.code})` : ""}`);
+      });
     }
 
 }
