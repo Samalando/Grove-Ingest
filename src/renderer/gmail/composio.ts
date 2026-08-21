@@ -8,9 +8,29 @@ const turndownService = new TurndownService();
 turndownService.remove(["style", "script", "head", "meta", "title"]);
 turndownService.addRule("img", {
     filter: "img",
-    replacement: (_content, node) => (node as HTMLElement).outerHTML
+    replacement: (_content, node) => {
+        const el = node as HTMLElement;
+        el.removeAttribute("width");
+        el.removeAttribute("height");
+        el.style.removeProperty("width");
+        el.style.removeProperty("height");
+        el.style.maxWidth = "100%";
+        el.style.height = "auto";
+        return el.outerHTML;
+    }
 });
-turndownService.keep(["table", "tbody", "thead", "tr", "td", "th"]);
+turndownService.addRule("table", {
+    filter: "table",
+    replacement: (_content, node) => {
+        const el = node as HTMLElement;
+        el.removeAttribute("width");
+        el.style.removeProperty("width");
+        el.style.maxWidth = "100%";
+        el.style.width = "100%";
+        return el.outerHTML;
+    }
+});
+turndownService.keep(["tbody", "thead", "tr", "td", "th"]);
 
 function findHtmlBody(part: any): string | undefined {
     if (part.mimeType === "text/html" && part.body?.data) {

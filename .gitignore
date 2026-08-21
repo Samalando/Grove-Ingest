@@ -16,6 +16,8 @@ output/*
 
 .DS_Store
 
+grove-cookie.txt
+
 /dist/
 
 CLAUDE.md

@@ -17,9 +17,19 @@ const CATEGORY_QUERY_OPERATORS: Record<string, string> = {
     CATEGORY_FORUMS: "category:forums",
 };
 
-function buildGmailQuery(categories?: string[]): string | undefined {
-    if (!categories?.length) return undefined;
-    return categories.map((category) => CATEGORY_QUERY_OPERATORS[category] ?? category).join(" OR ");
+function formatGmailDate(date: Date): string {
+    return date.toISOString().slice(0, 10).replace(/-/g, "/");
+}
+
+function buildGmailQuery(categories?: string[], start?: Date, end?: Date): string | undefined {
+    const parts: string[] = [];
+    if (categories?.length) {
+        const categoryQuery = categories.map((category) => CATEGORY_QUERY_OPERATORS[category] ?? category).join(" OR ");
+        parts.push(categories.length > 1 ? `(${categoryQuery})` : categoryQuery);
+    }
+    if (start) parts.push(`after:${formatGmailDate(start)}`);
+    if (end) parts.push(`before:${formatGmailDate(end)}`);
+    return parts.length ? parts.join(" ") : undefined;
 }
 
 export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
@@ -50,10 +60,11 @@ export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotic
         }
 
         const result = await session.execute('GMAIL_FETCH_EMAILS', {
-            max_results: 10, /* want to not hardcode this eventually.*/
+            max_results: me?.maxResults ?? 30,
             include_payload: true,
-            query: buildGmailQuery(me?.categories),
+            query: buildGmailQuery(me?.categories, me?.start, me?.end),
         });
+        const resultAttachments = "h"
         console.log((JSON.stringify(result, null, 2)) as any);
         return result.data;
 

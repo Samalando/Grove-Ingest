@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises"
 import homepage from "./index.html"
 import { toMarkdown, renderMarkdownFiles } from "../sinks/local"
 import { listRepositories } from "../connectors/github/composio"
+import { readCachedComposioKey, writeCachedComposioKey } from "../config/composioKeyring"
 import type { Config } from "../config/config"
 import type { AuthNotice } from "../connectors/authNotice"
 
@@ -89,6 +90,19 @@ const server = Bun.serve({
         },
 
         "/api/auth-status": () => Response.json({ notice: pendingAuthNotice }),
+
+        "/api/composio-key": {
+            GET: async () => Response.json({ key: await readCachedComposioKey() }),
+            POST: async (req) => {
+                try {
+                    const { key } = await req.json() as { key: string }
+                    if (typeof key === "string" && key) await writeCachedComposioKey(key)
+                    return Response.json({ ok: true })
+                } catch (err) {
+                    return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+                }
+            },
+        },
     },
 })
 

@@ -178,6 +178,7 @@ export default function ContentView(): JSX.Element {
     const [targetDir, setTargetDir] = useState("")
     const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | undefined>()
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+    const [maxResults, setMaxResults] = useState("30")
     const [config, setBuiltConfig] = useState<Config | undefined>()
     const [runStatus, setRunStatus] = useState<RunStatus>("idle")
     const [runError, setRunError] = useState<string | undefined>()
@@ -186,6 +187,31 @@ export default function ContentView(): JSX.Element {
     const [repoOptions, setRepoOptions] = useState<string[]>([])
     const [repoStatus, setRepoStatus] = useState<"idle" | "loading" | "error">("idle")
     const [repoError, setRepoError] = useState<string | undefined>()
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch("/api/composio-key")
+                const data = await res.json()
+                if (data.key) setPassword(data.key)
+            } catch {
+                // no cached key available, ignore
+            }
+        })()
+    }, [])
+
+    async function cacheComposioKey(key: string) {
+        if (!key) return
+        try {
+            await fetch("/api/composio-key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key }),
+            })
+        } catch {
+            // best-effort cache, ignore failures
+        }
+    }
 
     useEffect(() => {
         if (runStatus !== "running" && repoStatus !== "loading") {
@@ -284,6 +310,8 @@ export default function ContentView(): JSX.Element {
             googleMode,
             startDate ? new Date(startDate) : undefined,
             endDate ? new Date(endDate) : undefined,
+            googleMode === "gmail" ? Array.from(selectedTags) : undefined,
+            googleMode === "gmail" && maxResults ? Number(maxResults) : undefined,
         )
         setBuiltConfig(built)
         setRunStatus("running")
@@ -355,6 +383,29 @@ export default function ContentView(): JSX.Element {
                 </div>
             )}
 
+            {googleMode === "gmail" && (
+                <div className="field-group">
+                    <label className="field">
+                        <span className="field-label">Max emails to fetch</span>
+                        <input
+                            className="text-input"
+                            type="number"
+                            min={1}
+                            value={maxResults}
+                            onChange={(e) => setMaxResults(e.target.value)}
+                        />
+                    </label>
+                    <label className="field">
+                        <span className="field-label">Start date (optional)</span>
+                        <input className="text-input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    </label>
+                    <label className="field">
+                        <span className="field-label">End date (optional)</span>
+                        <input className="text-input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    </label>
+                </div>
+            )}
+
             {dataImport && (
                 <div className="field-group">
                     <span className="field-label">Do you want to import one bit or all the data?</span>
@@ -386,6 +437,7 @@ export default function ContentView(): JSX.Element {
                                 placeholder="ak_XXX..."
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                onBlur={(e) => cacheComposioKey(e.target.value)}
                             />
                             <input
                                 className="text-input"
@@ -457,6 +509,7 @@ export default function ContentView(): JSX.Element {
                         placeholder="ak_XXX..."
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        onBlur={(e) => cacheComposioKey(e.target.value)}
                     />
                     <input
                         className="text-input"

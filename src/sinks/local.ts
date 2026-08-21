@@ -78,7 +78,7 @@ ${bodyContent}`;
     });
 }
 
-export async function toMarkdown(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
+export async function toLocalMarkdown(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
     const files = await renderMarkdownFiles(config, onAuthNotice);
 
     for (const file of files) {
