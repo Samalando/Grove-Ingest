@@ -1,9 +1,9 @@
 import {Config} from "../config/config";
 import {prsRun} from "./github/prs";
 import {issuesRun} from "./github/issues";
-import {calendarEventsRun} from "./calender/composio"
+import {calendarEventsRun} from "./calender/events"
 import {nativeRun} from "./github/native"
-import {gmailMessagesRun} from "./gmail/composio";
+import {gmailMessagesRun} from "./gmail/emails";
 import {AuthNotice} from "../connectors/authNotice";
 
 export async function renderFunc(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {

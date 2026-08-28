@@ -3,14 +3,43 @@ import * as p from "@clack/prompts";
 import {GithubExportMode, SpikeConfig} from "../config/config";
 import {setConfig} from "../config";
 import {listRepositories} from "../connectors/github/composio";
-import {readCachedComposioKey, writeCachedComposioKey} from "../config/composioKeyring";
-import {readCachedGroveCookie, loginToGrove} from "../config/groveAuth";
+import {deleteCachedGithubToken} from "../connectors/github/native";
+import {readCachedComposioKey, writeCachedComposioKey, deleteCachedComposioKey} from "../config/composioKeyring";
+import {readCachedGroveCookie, loginToGrove, deleteCachedGroveCookie} from "../config/groveAuth";
 
 console.log("Its running")
 
 //console.log(loadConfig());
 
 export async function start() {
+    const action = await p.select({
+        message: "What would you like to do?",
+        options: [
+            { value: "sync", label: "Sync data" },
+            { value: "reset", label: "Reset saved credentials" },
+        ],
+    });
+    if (p.isCancel(action)) process.exit(1);
+
+    if (action === "reset") {
+        const which = await p.multiselect({
+            message: "Which saved credentials do you want to forget?",
+            options: [
+                { value: "composio", label: "Composio API key" },
+                { value: "github-native", label: "GitHub native login" },
+                { value: "grove", label: "Grove account cookie" },
+            ],
+        });
+        if (p.isCancel(which)) process.exit(1);
+
+        if (which.includes("composio")) await deleteCachedComposioKey();
+        if (which.includes("github-native")) await deleteCachedGithubToken();
+        if (which.includes("grove")) await deleteCachedGroveCookie();
+
+        p.outro("Saved credentials cleared.");
+        process.exit(0);
+    }
+
     const dataImport = await p.select({
         message: "What do you want to sync?",
         options: [

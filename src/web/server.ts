@@ -2,9 +2,12 @@ import * as os from "node:os"
 import * as path from "node:path"
 import { readdir } from "node:fs/promises"
 import homepage from "./index.html"
-import { toMarkdown, renderMarkdownFiles } from "../sinks/local"
+import { toLocalMarkdown, renderMarkdownFiles } from "../sinks/local"
+import { toGroveMarkdown } from "../sinks/grove"
 import { listRepositories } from "../connectors/github/composio"
-import { readCachedComposioKey, writeCachedComposioKey } from "../config/composioKeyring"
+import { deleteCachedGithubToken } from "../connectors/github/native"
+import { readCachedComposioKey, writeCachedComposioKey, deleteCachedComposioKey } from "../config/composioKeyring"
+import { readCachedGroveCookie, loginToGrove, deleteCachedGroveCookie } from "../config/groveAuth"
 import type { Config } from "../config/config"
 import type { AuthNotice } from "../connectors/authNotice"
 
@@ -46,7 +49,10 @@ const server = Bun.serve({
                 pendingAuthNotice = null
                 try {
                     const config = await req.json() as Config
-                    const written = await toMarkdown(config, (notice) => { pendingAuthNotice = notice })
+                    const onAuthNotice = (notice: AuthNotice | null) => { pendingAuthNotice = notice }
+                    const written = config.sinks.grove.enabled
+                        ? await toGroveMarkdown(config, onAuthNotice)
+                        : await toLocalMarkdown(config, onAuthNotice)
                     return Response.json({ ok: true, written })
                 } catch (err) {
                     return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
@@ -98,6 +104,37 @@ const server = Bun.serve({
                     const { key } = await req.json() as { key: string }
                     if (typeof key === "string" && key) await writeCachedComposioKey(key)
                     return Response.json({ ok: true })
+                } catch (err) {
+                    return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+                }
+            },
+            DELETE: async () => {
+                await deleteCachedComposioKey()
+                return Response.json({ ok: true })
+            },
+        },
+
+        "/api/github/native-token": {
+            DELETE: async () => {
+                await deleteCachedGithubToken()
+                return Response.json({ ok: true })
+            },
+        },
+
+        "/api/grove/cookie": {
+            GET: async () => Response.json({ cookie: await readCachedGroveCookie() }),
+            DELETE: async () => {
+                await deleteCachedGroveCookie()
+                return Response.json({ ok: true })
+            },
+        },
+
+        "/api/grove/login": {
+            POST: async (req) => {
+                try {
+                    const { password } = await req.json() as { password: string }
+                    const cookie = await loginToGrove(password)
+                    return Response.json({ ok: true, cookie })
                 } catch (err) {
                     return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
                 }

@@ -10,7 +10,7 @@ function makeTitleFilenameSafe(title: string) {
         '/': '∕',
         '\\': '＼',
         ':': 'ː',
-        '*': '⁎',
+        '*': '',
         '?': 'ʔ',
         '"': '″',
         '<': '‹',
@@ -78,14 +78,27 @@ ${bodyContent}`;
     });
 }
 
+const UPDATED_AT_REG = /^updated_at: "(.*)"$/m;
+
 export async function toLocalMarkdown(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
     const files = await renderMarkdownFiles(config, onAuthNotice);
 
+    let written = 0;
     for (const file of files) {
         const fullPath = path.join(config.outputDir, file.filename);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+
+        if (fs.existsSync(fullPath)) {
+            const existingUpdatedAt = fs.readFileSync(fullPath, 'utf8').match(UPDATED_AT_REG)?.[1];
+            const newUpdatedAt = file.content.match(UPDATED_AT_REG)?.[1];
+            if (existingUpdatedAt !== undefined && existingUpdatedAt === newUpdatedAt) {
+                continue;
+            }
+        }
+
         fs.writeFileSync(fullPath, file.content);
+        written++;
     }
 
-    return files.length;
+    return written;
 }

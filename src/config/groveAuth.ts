@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, unlink } from "node:fs/promises";
 import * as path from "node:path";
 
 const COOKIE_FILE = path.join(process.cwd(), "grove-cookie.txt");
@@ -30,4 +30,12 @@ export async function loginToGrove(password: string): Promise<string> {
 
     await writeFile(COOKIE_FILE, cookie, "utf-8");
     return cookie;
+}
+
+export async function deleteCachedGroveCookie(): Promise<void> {
+    try {
+        await unlink(COOKIE_FILE);
+    } catch {
+        // nothing cached to delete
+    }
 }

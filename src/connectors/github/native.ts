@@ -2,6 +2,7 @@ import {Octokit} from '@octokit/rest';
 import {Config} from '../../config/config'
 import {AuthNotice} from '../authNotice'
 import {AsyncEntry} from '@napi-rs/keyring'
+import {isInvalidCredentialError} from '../authError'
 
 const KEYRING_SERVICE = 'grove-ingest'
 const KEYRING_ACCOUNT = 'github-token'
@@ -20,6 +21,14 @@ async function readCachedToken(): Promise<string | null> {
 
 async function writeCachedToken(accessToken: string): Promise<void> {
     await tokenEntry().setPassword(accessToken);
+}
+
+export async function deleteCachedGithubToken(): Promise<void> {
+    try {
+        await tokenEntry().deleteCredential();
+    } catch {
+        // nothing cached to delete
+    }
 }
 
 
@@ -110,27 +119,20 @@ async function deviceFlowLogin(onAuthNotice?: (notice: AuthNotice | null) => voi
     return accessToken;
 }
 
-export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
-    const cachedToken = await readCachedToken();
-    let accessToken = cachedToken ? cachedToken : null;
+//@ts-ignore
+async function fetchUserItems(octokit, username, type) {
+    const [authored, assigned] = await Promise.all([
+        octokit.rest.search.issuesAndPullRequests({ q: `author:${username} is:${type}` }),
+        octokit.rest.search.issuesAndPullRequests({ q: `assignee:${username} is:${type}` }),
+    ]);
+    const combined = [...authored.data.items, ...assigned.data.items];
+    return Array.from(new Map(combined.map((item) => [item.id, item])).values());
+}
 
-    if (!accessToken) {
-        accessToken = await deviceFlowLogin(onAuthNotice);
-        await writeCachedToken(accessToken);
-    }
-
+async function fetchWithToken(config: Config, accessToken: string) {
     const octokit = new Octokit({
         auth: accessToken
     });
-    //@ts-ignore
-    async function fetchUserItems(octokit, username, type) {
-        const [authored, assigned] = await Promise.all([
-            octokit.rest.search.issuesAndPullRequests({ q: `author:${username} is:${type}` }),
-            octokit.rest.search.issuesAndPullRequests({ q: `assignee:${username} is:${type}` }),
-        ]);
-        const combined = [...authored.data.items, ...assigned.data.items];
-        return Array.from(new Map(combined.map((item) => [item.id, item])).values());
-    }
 
     let stuffs
     const { data } = await octokit.rest.users.getAuthenticated();
@@ -143,4 +145,21 @@ export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthN
 
     //@ts-ignore
     return stuffs ?? [];
+}
+
+export async function nativeGithub(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
+    const cachedToken = await readCachedToken();
+
+    if (cachedToken) {
+        try {
+            return await fetchWithToken(config, cachedToken);
+        } catch (error) {
+            if (!isInvalidCredentialError(error)) throw error;
+            await deleteCachedGithubToken();
+        }
+    }
+
+    const accessToken = await deviceFlowLogin(onAuthNotice);
+    await writeCachedToken(accessToken);
+    return await fetchWithToken(config, accessToken);
 }

@@ -20,6 +20,7 @@ const EMAIL_TAGS: EmailTag[] = [
 
 type ImportOption = "Import option" | "Pull Requests" | "Issues" | "Gmail" | "Google Calendar"
 type SpikeOption = "Spike" | "Composio" | "Native"
+type SinkOption = "Sink" | "Locally" | "Grove"
 type RunStatus = "idle" | "running" | "success" | "error"
 
 type MenuItem = { label: string; value: string; hint?: string }
@@ -175,8 +176,13 @@ export default function ContentView(): JSX.Element {
     const [composioUser, setComposioUser] = useState("")
     const [dataQuantity, setDataQuantity] = useState<"all" | "select" | undefined>()
     const [selectData, setSelectData] = useState("")
+    const [sink, setSink] = useState<SinkOption>("Sink")
     const [targetDir, setTargetDir] = useState("")
     const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | undefined>()
+    const [grovePassword, setGrovePassword] = useState("")
+    const [groveCookie, setGroveCookie] = useState("")
+    const [groveLoginStatus, setGroveLoginStatus] = useState<"idle" | "loading" | "error">("idle")
+    const [groveError, setGroveError] = useState<string | undefined>()
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [maxResults, setMaxResults] = useState("30")
     const [config, setBuiltConfig] = useState<Config | undefined>()
@@ -198,7 +204,35 @@ export default function ContentView(): JSX.Element {
                 // no cached key available, ignore
             }
         })()
+        ;(async () => {
+            try {
+                const res = await fetch("/api/grove/cookie")
+                const data = await res.json()
+                if (data.cookie) setGroveCookie(data.cookie)
+            } catch {
+                // no cached cookie available, ignore
+            }
+        })()
     }, [])
+
+    async function loginGrove() {
+        setGroveLoginStatus("loading")
+        setGroveError(undefined)
+        try {
+            const res = await fetch("/api/grove/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: grovePassword }),
+            })
+            const data = await res.json()
+            if (!res.ok || !data.ok) throw new Error(data.error ?? "Grove login failed")
+            setGroveCookie(data.cookie as string)
+            setGroveLoginStatus("idle")
+        } catch (err) {
+            setGroveLoginStatus("error")
+            setGroveError(err instanceof Error ? err.message : String(err))
+        }
+    }
 
     async function cacheComposioKey(key: string) {
         if (!key) return
@@ -210,6 +244,32 @@ export default function ContentView(): JSX.Element {
             })
         } catch {
             // best-effort cache, ignore failures
+        }
+    }
+
+    async function forgetComposioKey() {
+        setPassword("")
+        try {
+            await fetch("/api/composio-key", { method: "DELETE" })
+        } catch {
+            // best-effort clear, ignore failures
+        }
+    }
+
+    async function forgetGithubNativeToken() {
+        try {
+            await fetch("/api/github/native-token", { method: "DELETE" })
+        } catch {
+            // best-effort clear, ignore failures
+        }
+    }
+
+    async function forgetGroveCookie() {
+        setGroveCookie("")
+        try {
+            await fetch("/api/grove/cookie", { method: "DELETE" })
+        } catch {
+            // best-effort clear, ignore failures
         }
     }
 
@@ -264,6 +324,7 @@ export default function ContentView(): JSX.Element {
         setOption(value)
         setNext(false)
         setSpike("Spike")
+        setSink("Sink")
         setBuiltConfig(undefined)
         setRunStatus("idle")
         setRepoOptions([])
@@ -273,6 +334,7 @@ export default function ContentView(): JSX.Element {
 
     function chooseSpike(value: SpikeOption) {
         setSpike(value)
+        setSink("Sink")
         setBuiltConfig(undefined)
         setRunStatus("idle")
     }
@@ -290,11 +352,12 @@ export default function ContentView(): JSX.Element {
         && (googleMode !== "calendar" || (startDate !== "" && endDate !== ""))
         && (dataQuantity === "all" || (dataQuantity === "select" && (googleMode === "gmail" ? selectedTags.size > 0 : selectData !== "")))
 
+    const composioReady = spike !== "Composio" || (password !== "" && composioUser !== "")
     const hasOutputTarget = supportsDirectoryPicker ? dirHandle !== undefined : targetDir !== ""
 
     const readyToRun = spike !== "Spike"
-        && hasOutputTarget
-        && (spike !== "Composio" || (password !== "" && composioUser !== ""))
+        && composioReady
+        && ((sink === "Locally" && hasOutputTarget) || (sink === "Grove" && groveCookie !== ""))
 
     async function runIngest() {
         const spikeConfig = spike === "Composio"
@@ -302,9 +365,9 @@ export default function ContentView(): JSX.Element {
             : { type: "native" as const }
 
         const built = setConfig(
-            targetDir,
+            sink === "Grove" ? "" : targetDir,
             spikeConfig,
-            undefined,
+            sink === "Grove",
             githubMode ? { mode: githubMode } : undefined,
             selectData,
             googleMode,
@@ -312,13 +375,14 @@ export default function ContentView(): JSX.Element {
             endDate ? new Date(endDate) : undefined,
             googleMode === "gmail" ? Array.from(selectedTags) : undefined,
             googleMode === "gmail" && maxResults ? Number(maxResults) : undefined,
+            sink === "Grove" ? groveCookie : undefined,
         )
         setBuiltConfig(built)
         setRunStatus("running")
         setRunError(undefined)
 
         try {
-            if (dirHandle) {
+            if (dirHandle && sink === "Locally") {
                 const res = await fetch("/api/render", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -446,6 +510,11 @@ export default function ContentView(): JSX.Element {
                                 value={composioUser}
                                 onChange={(e) => setComposioUser(e.target.value)}
                             />
+                            {password && (
+                                <button type="button" className="option-button" onClick={forgetComposioKey}>
+                                    Forget saved key
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 className="option-button"
@@ -518,13 +587,74 @@ export default function ContentView(): JSX.Element {
                         value={composioUser}
                         onChange={(e) => setComposioUser(e.target.value)}
                     />
+                    {password && (
+                        <button type="button" className="option-button" onClick={forgetComposioKey}>
+                            Forget saved key
+                        </button>
+                    )}
                 </div>
             )}
 
-            {spike !== "Spike" && (
+            {spike === "Native" && (
+                <div className="field-group">
+                    <button type="button" className="option-button" onClick={forgetGithubNativeToken}>
+                        Forget saved GitHub login
+                    </button>
+                </div>
+            )}
+
+            {spike !== "Spike" && composioReady && (
+                <div className="field-group">
+                    <span className="field-label">Would you like to save these files locally or to Grove?</span>
+                    <MenuButton
+                        label={sink}
+                        onSelect={(value) => setSink(value as SinkOption)}
+                        sections={[
+                            { heading: "Sink", items: [
+                                { label: "Locally", value: "Locally" },
+                                { label: "Grove", value: "Grove" },
+                            ] },
+                        ]}
+                    />
+                </div>
+            )}
+
+            {sink === "Locally" && (
                 supportsDirectoryPicker
                     ? <NativeFolderPicker handle={dirHandle} onChoose={(h) => { setDirHandle(h); setTargetDir(h.name) }} />
                     : <FolderPicker value={targetDir} onChange={setTargetDir} />
+            )}
+
+            {sink === "Grove" && (
+                <div className="field-group">
+                    {groveCookie ? (
+                        <>
+                            <span className="field-label">✔ Connected to Grove</span>
+                            <button type="button" className="option-button" onClick={forgetGroveCookie}>
+                                Disconnect
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <input
+                                className="text-input"
+                                type="password"
+                                placeholder="Grove account password"
+                                value={grovePassword}
+                                onChange={(e) => setGrovePassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="option-button"
+                                disabled={!grovePassword || groveLoginStatus === "loading"}
+                                onClick={loginGrove}
+                            >
+                                {groveLoginStatus === "loading" ? "Connecting…" : "Connect to Grove"}
+                            </button>
+                            {groveLoginStatus === "error" && <div className="folder-browser-error">{groveError}</div>}
+                        </>
+                    )}
+                </div>
             )}
 
             {readyToRun && (
@@ -547,13 +677,12 @@ export default function ContentView(): JSX.Element {
                 <div className="summary">
                     {runStatus === "success" && (
                         <span className="summary-line summary-line-success">
-                            ✔ Synced {writtenCount} file{writtenCount === 1 ? "" : "s"} to {config.outputDir}
+                             Synced {writtenCount} file{writtenCount === 1 ? "" : "s"} to {config.outputDir || "Grove"}
                         </span>
                     )}
                     {runStatus === "error" && (
                         <span className="summary-line summary-line-error">✕ {runError}</span>
                     )}
-                    <pre className="summary-pre">{JSON.stringify(config, null, 2)}</pre>
                 </div>
             )}
         </div>

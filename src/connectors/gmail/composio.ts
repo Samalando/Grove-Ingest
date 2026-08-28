@@ -2,6 +2,7 @@ import {Composio} from "@composio/core";
 
 import {Config} from "../../config/config";
 import {AuthNotice} from "../authNotice";
+import {invalidateComposioKeyIfStale} from "../authError";
 
 const CATEGORY_QUERY_OPERATORS: Record<string, string> = {
     INBOX: "in:inbox",
@@ -42,31 +43,35 @@ export async function gmailRun(config: Config, onAuthNotice?: (notice: AuthNotic
     }
 
     if (config.spike.type === "composio") {
-        const composio = new Composio({
-            apiKey: config.spike.composioApiKey,
-        });
+        try {
+            const composio = new Composio({
+                apiKey: config.spike.composioApiKey,
+            });
 
-        const session = await composio.create(config.spike.username);
+            const session = await composio.create(config.spike.username);
 
-        const toolkits = await session.toolkits();
-        const gmail = toolkits.items.find(t => t.slug === 'gmail');
+            const toolkits = await session.toolkits();
+            const gmail = toolkits.items.find(t => t.slug === 'gmail');
 
-        if (!gmail?.connection?.isActive) {
-            const auth = await session.authorize('gmail');
-            console.log(auth.redirectUrl);
-            if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
-            await auth.waitForConnection();
-            onAuthNotice?.(null);
+            if (!gmail?.connection?.isActive) {
+                const auth = await session.authorize('gmail');
+                console.log(auth.redirectUrl);
+                if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
+                await auth.waitForConnection();
+                onAuthNotice?.(null);
+            }
+
+            const result = await session.execute('GMAIL_FETCH_EMAILS', {
+                max_results: me?.maxResults ?? 30,
+                include_payload: true,
+                query: buildGmailQuery(me?.categories, me?.start, me?.end),
+            });
+            const resultAttachments = "h"
+            console.log((JSON.stringify(result, null, 2)) as any);
+            return result.data;
+        } catch (error) {
+            await invalidateComposioKeyIfStale(error);
+            throw error;
         }
-
-        const result = await session.execute('GMAIL_FETCH_EMAILS', {
-            max_results: me?.maxResults ?? 30,
-            include_payload: true,
-            query: buildGmailQuery(me?.categories, me?.start, me?.end),
-        });
-        const resultAttachments = "h"
-        console.log((JSON.stringify(result, null, 2)) as any);
-        return result.data;
-
     }
 }

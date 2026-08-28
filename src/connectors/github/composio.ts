@@ -2,28 +2,34 @@ import {Composio} from "@composio/core";
 
 import {Config, SpikeConfig} from "../../config/config";
 import {AuthNotice} from "../authNotice";
+import {invalidateComposioKeyIfStale} from "../authError";
 
 type ComposioSpike = Extract<SpikeConfig, { type: "composio" }>;
 
 async function connectGithub(spike: ComposioSpike, onAuthNotice?: (notice: AuthNotice | null) => void) {
-    const composio = new Composio({
-        apiKey: spike.composioApiKey,
-    });
+    try {
+        const composio = new Composio({
+            apiKey: spike.composioApiKey,
+        });
 
-    const session = await composio.create(spike.username);
+        const session = await composio.create(spike.username);
 
-    const toolkits = await session.toolkits();
-    const github = toolkits.items.find(t => t.slug === 'github');
+        const toolkits = await session.toolkits();
+        const github = toolkits.items.find(t => t.slug === 'github');
 
-    if (!github?.connection?.isActive) {
-        const auth = await session.authorize('github');
-        console.log(auth.redirectUrl);
-        if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
-        await auth.waitForConnection();
-        onAuthNotice?.(null);
+        if (!github?.connection?.isActive) {
+            const auth = await session.authorize('github');
+            console.log(auth.redirectUrl);
+            if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
+            await auth.waitForConnection();
+            onAuthNotice?.(null);
+        }
+
+        return session;
+    } catch (error) {
+        await invalidateComposioKeyIfStale(error);
+        throw error;
     }
-
-    return session;
 }
 
 export async function listRepositories(spike: ComposioSpike, onAuthNotice?: (notice: AuthNotice | null) => void) {

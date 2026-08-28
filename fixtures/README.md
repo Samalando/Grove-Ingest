@@ -1,1 +1,0 @@
-Example and stable jsons without needing to pull data

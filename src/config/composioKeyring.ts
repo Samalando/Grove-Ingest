@@ -18,3 +18,11 @@ export async function readCachedComposioKey(): Promise<string | null> {
 export async function writeCachedComposioKey(accessToken: string): Promise<void> {
     await tokenEntry().setPassword(accessToken);
 }
+
+export async function deleteCachedComposioKey(): Promise<void> {
+    try {
+        await tokenEntry().deleteCredential();
+    } catch {
+        // nothing cached to delete
+    }
+}
