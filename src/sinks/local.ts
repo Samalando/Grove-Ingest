@@ -12,7 +12,7 @@ export async function toLocalMarkdown(config: Config, onAuthNotice?: (notice: Au
     let written = 0;
     const errors: string[] = [];
     for (const file of files) {
-        try
+        try {
             const fullPath = path.join(config.outputDir, file.filename);
             fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 

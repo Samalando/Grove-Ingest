@@ -3,8 +3,8 @@
 Grove Data Ingestion
 
 A project used for taking in 3rd party data and integrating it into Grove, primarily using Composio.
-Note: only works locally
-Current status: Week 5
+
+Wanna read my paper on this? see Grove Ingest.pdf!
 
 ## General info
 
@@ -19,6 +19,13 @@ With that being said, both have their pros and cons.
 Composio is much easier to integrate, however you need to make a Composio account. Whilst that isn't the hardest, it's one more thing that you wouldn't do otherwise.
 Native, and I'm going to be blunt here, sucks. I don't feel like there are any benefits to using it, and is much more complex to make than Composio (almost double the line count!)
 
+### What I didn't do
+
+- Dedup lookup uses the full title+hash filename → retitled items orphan the old file; look files up by the stable 8-char hash instead.
+
+- Grove sink idempotency: re-PUTs everything every run; skip unchanged via updated_at (like local) or If-Match/x-grove-version. Also lift the hardcoded localhost:8123 + ingest space into config.
+
+- Restore fixtures/ from HEAD~1 and add ~10 normalization/rendering tests against them; make tsc --noEmit a habit (optional: add @types/node to devDeps so npm-only environments build too).
 
 ### Current Integrations
 - GitHub
