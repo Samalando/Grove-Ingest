@@ -26,7 +26,6 @@ export async function calendarRun(config: Config, onAuthNotice?: (notice: AuthNo
 
             if (!googlecalendar?.connection?.isActive) {
                 const auth = await session.authorize('googlecalendar');
-                console.log(auth.redirectUrl);
                 if (auth.redirectUrl) onAuthNotice?.({ url: auth.redirectUrl });
                 await auth.waitForConnection();
                 onAuthNotice?.(null);

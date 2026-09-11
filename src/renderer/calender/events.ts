@@ -1,4 +1,4 @@
-import { calendarRun } from "../../connectors/calender/composio";
+import { calendarRun } from "../../connectors/calendar/composio";
 import { MarkdownConfig } from "../markdown";
 import { Config } from "../../config/config";
 import { AuthNotice } from "../../connectors/authNotice";

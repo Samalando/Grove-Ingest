@@ -3,7 +3,7 @@ import {AuthNotice} from "../connectors/authNotice";
 import {renderMarkdownFiles} from "../renderer/renderMarkdown";
 
 export async function toGroveMarkdown(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
-    const files = await renderMarkdownFiles(config, onAuthNotice);
+    const files = await renderMarkdownFiles(config, onAuthNotice, { plainMarkdown: true });
 
     const errors: string[] = [];
     for (const file of files) {

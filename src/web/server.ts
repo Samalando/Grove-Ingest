@@ -69,7 +69,7 @@ const server = Bun.serve({
                 pendingAuthNotice = null
                 try {
                     const config = await req.json() as Config
-                    const files = await renderMarkdownFiles(config, (notice) => { pendingAuthNotice = notice })
+                    const files = await renderMarkdownFiles(config, (notice) => { pendingAuthNotice = notice }, { plainMarkdown: config.sinks.grove.enabled })
                     return Response.json({ ok: true, files })
                 } catch (err) {
                     return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })

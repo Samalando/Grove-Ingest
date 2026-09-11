@@ -35,23 +35,43 @@ function normalizeThreadTitle(title: string): string {
     return normalized || title;
 }
 
-const turndownService = new TurndownService();
+function createTurndownService(plainMarkdown: boolean) {
+    const service = new TurndownService();
 
-turndownService.remove(["style", "script", "head", "meta", "title"]);
-turndownService.use(tables);
-turndownService.addRule("img", {
-    filter: "img",
-    replacement: (_content, node) => {
-        const el = node as HTMLElement;
-        const alt = el.getAttribute("alt") ?? "";
-        const src = el.getAttribute("src") ?? "";
-        return src ? `![${alt}](${src})` : "";
+    service.remove(["style", "script", "head", "meta", "title"]);
+    service.use(tables);
+    service.addRule("emptyTable", {
+        filter: (node) => node.nodeName === "TABLE" && (node as HTMLTableElement).rows.length === 0,
+        replacement: (content) => content
+    });
+    if (plainMarkdown) {
+        service.addRule("forceMarkdownTable", {
+            filter: (node) => node.nodeName === "TABLE" && (node as HTMLTableElement).rows.length > 0,
+            replacement: (content) => {
+                content = content.replace("\n\n", "\n");
+                return "\n\n" + content + "\n\n";
+            }
+        });
     }
-});
+    service.addRule("img", {
+        filter: "img",
+        replacement: (_content, node) => {
+            const el = node as HTMLElement;
+            const alt = el.getAttribute("alt") ?? "";
+            const src = el.getAttribute("src") ?? "";
+            return src ? `![${alt}](${src})` : "";
+        }
+    });
 
+    return service;
+}
 
-export async function renderMarkdownFiles(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void) {
+const turndownService = createTurndownService(false);
+const turndownServicePlainMarkdown = createTurndownService(true);
+
+export async function renderMarkdownFiles(config: Config, onAuthNotice?: (notice: AuthNotice | null) => void, options?: { plainMarkdown?: boolean }) {
     const dataArray = await renderFunc(config, onAuthNotice);
+    const service = options?.plainMarkdown ? turndownServicePlainMarkdown : turndownService;
 
 
     const threadCounts = new Map<string, number>();
@@ -62,7 +82,7 @@ export async function renderMarkdownFiles(config: Config, onAuthNotice?: (notice
     }
 
     return dataArray.map((data) => {
-        const bodyContent = data.bodyFormat === "html" ? turndownService.turndown(data.body) : data.body ?? "*No body was provided.*";
+        const bodyContent = data.bodyFormat === "html" ? service.turndown(data.body ?? "") : data.body ?? "*No body was provided.*";
 
         const frontmatter = [
             `provider: ${data.provider}`,
